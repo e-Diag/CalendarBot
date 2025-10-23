@@ -1,7 +1,6 @@
     {
       "name": "telegram-planner-frontend",
       "version": "1.0.0",
-       "homepage": "https://calendar-k37xh99kn-ediags-projects.vercel.app/",
       "description": "Frontend for the Telegram Mini App Planner.",
       "main": "src/index.jsx",
       "scripts": {
