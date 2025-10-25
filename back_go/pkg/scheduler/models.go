@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"log"
+	"strconv" // NEW: Добавлен для strconv.ParseInt
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +42,13 @@ func (u *User) SetTimeZone(tzName string) error {
 	u.TimeZone = loc
 	u.TzAsString = tzName
 	return nil
+}
+
+// ChatID преобразует строковый ID пользователя в int64 для Telegram API.
+// Метод определен здесь, так как User является локальным типом в пакете scheduler.
+func (u *User) ChatID() int64 {
+	id, _ := strconv.ParseInt(u.ID, 10, 64)
+	return id
 }
 
 // ScheduleItem представляет одно запланированное событие, заметку или напоминание.
