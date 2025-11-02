@@ -1,8 +1,15 @@
-.env
-/.exe
-/.out
-/bin/
-/pkg/
-/tmp/
-/vendor/
-/go.sum
+# Backend
+backend/.env
+backend/bin/
+backend/tmp/
+backend/*.exe
+
+# Frontend
+frontend/.env
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# General
+.DS_Store
+*.log
