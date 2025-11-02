@@ -173,6 +173,28 @@ func main() {
 		repo.AddItem(&item)
 		c.JSON(201, item)
 	})
+	api.PUT("/items/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		var item ScheduleItem
+		c.BindJSON(&item)
+		item.ID = id
+		item.OwnerID = c.GetString("userID")
+		item.LastEdited = time.Now()
+		// Обновление в БД (пока используем AddItem, но можно добавить UpdateItem в репозиторий)
+		repo.AddItem(&item)
+		c.JSON(200, item)
+	})
+	api.DELETE("/items/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		userID := c.GetString("userID")
+		// Удаление из БД
+		_, err := repo.conn.Exec(context.Background(), "DELETE FROM items WHERE id = $1 AND owner_id = $2", id, userID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"message": "deleted"})
+	})
 
 	log.Println("Server: http://localhost:8080")
 	r.Run(":8080")
