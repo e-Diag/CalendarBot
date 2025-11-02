@@ -33,7 +33,19 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
     
     // Получаем initData из Telegram WebApp если доступен
-    const initData = (window as any).Telegram?.WebApp?.initData;
+    const telegramWebApp = (window as any).Telegram?.WebApp;
+    let initData = '';
+    
+    if (telegramWebApp) {
+      // Инициализируем Telegram WebApp если еще не инициализирован
+      if (!telegramWebApp.readyState) {
+        telegramWebApp.ready();
+      }
+      initData = telegramWebApp.initData || '';
+      
+      // Расширяем приложение на весь экран
+      telegramWebApp.expand();
+    }
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -41,17 +53,27 @@ class ApiClient {
       ...options?.headers,
     };
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    console.log('API Request:', { url, method: options?.method || 'GET', hasInitData: !!initData });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('API Error:', error, 'Status:', response.status);
+        throw new Error(error.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API Response:', data);
+      return data;
+    } catch (error) {
+      console.error('API Request failed:', error);
+      throw error;
     }
-
-    return response.json();
   }
 
   async getItems(): Promise<ScheduleItem[]> {

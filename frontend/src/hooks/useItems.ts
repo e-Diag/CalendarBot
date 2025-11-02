@@ -10,11 +10,16 @@ export function useItems() {
     try {
       setLoading(true);
       setError(null);
+      console.log('Fetching items...');
       const data = await apiClient.getItems();
-      setItems(data);
+      console.log('Items fetched:', data);
+      setItems(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+      setError(errorMessage);
       console.error('Error fetching items:', err);
+      // Устанавливаем пустой массив при ошибке, чтобы не ломать UI
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -27,12 +32,21 @@ export function useItems() {
   const createItem = async (item: CreateItemRequest): Promise<ScheduleItem | null> => {
     try {
       setError(null);
+      console.log('Creating item:', item);
       const newItem = await apiClient.createItem(item);
+      console.log('Item created:', newItem);
       setItems((prev) => [...prev, newItem]);
       return newItem;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка создания заметки');
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка создания заметки';
+      setError(errorMessage);
       console.error('Error creating item:', err);
+      // Показываем alert для пользователя
+      if ((window as any).Telegram?.WebApp) {
+        (window as any).Telegram.WebApp.showAlert(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
       return null;
     }
   };

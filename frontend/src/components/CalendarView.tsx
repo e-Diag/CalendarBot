@@ -1,9 +1,12 @@
 import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useItems } from '../hooks/useItems';
+import { ScheduleItem } from '../api/client';
 
 export default function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { items, loading } = useItems();
 
   const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
   const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -31,13 +34,46 @@ export default function CalendarView() {
     return days;
   };
 
-  const events: { [key: number]: string[] } = {
-    5: ['blue'],
-    12: ['blue', 'purple'],
-    18: ['cyan'],
-    22: ['purple'],
-    25: ['blue', 'cyan'],
-  };
+  // Группируем события по дням месяца
+  const eventsByDay = useMemo(() => {
+    const events: { [key: number]: ScheduleItem[] } = {};
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    items
+      .filter(item => item.type === 'event')
+      .forEach(item => {
+        if (item.target_time_utc) {
+          const eventDate = new Date(item.target_time_utc);
+          if (eventDate.getFullYear() === year && eventDate.getMonth() === month) {
+            const day = eventDate.getDate();
+            if (!events[day]) {
+              events[day] = [];
+            }
+            events[day].push(item);
+          }
+        }
+      });
+    
+    return events;
+  }, [items, currentMonth]);
+
+  // Получаем предстоящие события для отображения внизу
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    return items
+      .filter(item => {
+        if (item.type !== 'event' || !item.target_time_utc) return false;
+        const eventDate = new Date(item.target_time_utc);
+        return eventDate >= now;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.target_time_utc).getTime();
+        const dateB = new Date(b.target_time_utc).getTime();
+        return dateA - dateB;
+      })
+      .slice(0, 5);
+  }, [items]);
 
   const days = getDaysInMonth(currentMonth);
   const today = new Date();
@@ -95,7 +131,8 @@ export default function CalendarView() {
           <div className="grid grid-cols-7 gap-2">
             {days.map((day, index) => {
               const isToday = isCurrentMonth && day === today.getDate();
-              const hasEvents = day && events[day];
+              const dayEvents = day ? eventsByDay[day] : null;
+              const hasEvents = dayEvents && dayEvents.length > 0;
 
               return (
                 <motion.div
@@ -115,19 +152,21 @@ export default function CalendarView() {
                     <>
                       <span className="text-sm">{day}</span>
                       {hasEvents && (
-                        <div className="flex gap-1 mt-1">
-                          {hasEvents.map((color, i) => (
+                        <div className="flex gap-1 mt-1 flex-wrap justify-center max-w-full">
+                          {dayEvents!.slice(0, 3).map((event, i) => (
                             <div
-                              key={i}
+                              key={event.id}
                               className={`w-1.5 h-1.5 rounded-full ${
-                                color === 'blue'
-                                  ? 'bg-blue-500'
-                                  : color === 'purple'
-                                  ? 'bg-purple-500'
-                                  : 'bg-cyan-500'
-                              } ${isToday ? 'bg-white' : ''}`}
+                                isToday ? 'bg-white' : 'bg-blue-500'
+                              }`}
+                              title={event.title}
                             />
                           ))}
+                          {dayEvents!.length > 3 && (
+                            <div className={`text-[8px] ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                              +{dayEvents!.length - 3}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -141,34 +180,43 @@ export default function CalendarView() {
         <div className="mt-6 space-y-3">
           <h3 className="text-gray-900 dark:text-white mb-4">Предстоящие события</h3>
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm flex items-center gap-4"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white">12</span>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Загрузка событий...
             </div>
-            <div className="flex-1">
-              <div className="text-gray-900 dark:text-white mb-1">Командная встреча</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">14:00 - 15:00</div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Нет предстоящих событий
             </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm flex items-center gap-4"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-800 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white">22</span>
-            </div>
-            <div className="flex-1">
-              <div className="text-gray-900 dark:text-white mb-1">Обзор проекта</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">10:00 - 11:30</div>
-            </div>
-          </motion.div>
+          ) : (
+            upcomingEvents.map((event, index) => {
+              const eventDate = new Date(event.target_time_utc);
+              const day = eventDate.getDate();
+              const month = eventDate.getMonth();
+              const hours = eventDate.getHours().toString().padStart(2, '0');
+              const minutes = eventDate.getMinutes().toString().padStart(2, '0');
+              
+              return (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm flex items-center gap-4"
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-sm">{day}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-gray-900 dark:text-white mb-1">{event.title || 'Без названия'}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {hours}:{minutes} - {eventDate.toLocaleDateString('ru-RU', { month: 'short' })}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </div>
     </motion.div>
