@@ -14,6 +14,7 @@ frontend/.vite/
 # Scripts
 update_repo.bat
 update_repo.sh
+GIT_UPDATE.md
 
 # General
 .DS_Store

@@ -19,12 +19,14 @@
    - Нажмите "Add New Project"
    - Выберите ваш репозиторий
 
-2. Настройте проект:
+2. Настройте проект в Vercel Dashboard:
    - **Framework Preset**: Vite
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `build`
-   - **Install Command**: `npm install`
+   - **Root Directory**: `frontend` ⚠️ ВАЖНО!
+   - **Build Command**: `npm run build` (или оставьте пустым, если используется vercel.json)
+   - **Output Directory**: `build` (или оставьте пустым, если используется vercel.json)
+   - **Install Command**: `npm install` (или оставьте пустым)
+
+   **Примечание**: После указания Root Directory как `frontend`, все пути будут относительно этой директории. Vercel автоматически найдет `package.json` и `vercel.json` в папке `frontend`.
 
 3. Добавьте переменные окружения:
    - В настройках проекта добавьте `VITE_API_URL` со значением вашего backend URL
